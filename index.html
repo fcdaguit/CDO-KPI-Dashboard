@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sales KPI Dashboard</title>
+  <meta name="description" content="Executive Sales KPI Dashboard — Target vs Actual sellout, Pareto analysis and automated insights.">
+  <!-- Apply the saved theme before first paint to avoid a flash -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('kpi.theme');
+        if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark');
+      } catch (e) {}
+    })();
+  </script>
+  <!-- Tailwind CSS (Play CDN) — utility classes; all core layout also lives in css/styles.css -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' };</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Loading overlay -->
+  <div id="loader" class="loader" role="status" aria-live="polite">
+    <div class="spinner"></div><p>Loading data from Google Sheets…</p>
+  </div>
+  <div id="toast" class="toast" role="alert"></div>
+
+  <!-- Header -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">▲</div>
+      <div>
+        <h1 id="appTitle">Sales KPI Dashboard</h1>
+        <p id="lastUpdated" class="muted">Last updated: —</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="button" id="btnRefresh" class="btn primary" title="Reload data from Google Sheets"><span class="ico">⟳</span> Refresh Data</button>
+      <label class="switch" title="Reload data every 5 minutes">
+        <input type="checkbox" id="chkAuto"><span class="track"></span><span class="switch-lbl">Auto-refresh</span>
+      </label>
+      <button type="button" id="btnPdf" class="btn" title="Export the full dashboard to PDF">Export PDF</button>
+      <button type="button" id="btnTheme" class="btn" title="Toggle dark / light theme">🌙 Dark</button>
+    </div>
+  </header>
+
+  <!-- Sticky filter panel -->
+  <section class="filters" aria-label="Filters">
+    <div class="filters-top">
+      <button type="button" id="btnFilterToggle" class="btn filter-toggle">☰ Filters</button>
+      <span id="recordCount" class="muted">—</span>
+      <button type="button" id="btnClear" class="btn small">Clear filters</button>
+    </div>
+    <div id="filterBody" class="filter-body">
+      <div id="filterHost" class="filter-grid"></div>
+      <div id="filterSummary" class="chips"></div>
+    </div>
+  </section>
+
+  <main class="container">
+    <div id="banner"></div>
+    <div id="errorBox" class="error-box hidden"></div>
+
+    <!-- Everything inside #exportArea feeds the PDF export -->
+    <div id="exportArea">
+      <div id="analytics">
+        <section id="kpiSection" data-pdf-section aria-label="Key performance indicators">
+          <div id="kpiGrid" class="kpi-grid"></div>
+        </section>
+        <div id="chartsGrid" class="charts-grid"></div>
+      </div>
+    </div>
+
+    <!-- Detail table -->
+    <section id="tableSection" class="card hidden">
+      <div class="card-head">
+        <div><h2>Detailed Records</h2><p class="muted">All filtered records · click a header to sort · use the row under the header to search a column</p></div>
+        <div class="tbl-actions">
+          <input id="tblSearch" type="search" class="input" placeholder="Search all columns…" aria-label="Global search">
+          <div id="tblColsWrap" class="relative">
+            <button type="button" id="tblColsBtn" class="btn small">Columns ▾</button>
+            <div id="tblColsPanel" class="ms-panel right hidden"></div>
+          </div>
+          <select id="tblSize" class="input" aria-label="Rows per page">
+            <option value="10">10 / page</option><option value="25" selected>25 / page</option><option value="50">50 / page</option><option value="100">100 / page</option>
+          </select>
+          <button type="button" id="btnCsv" class="btn small">Export CSV</button>
+          <button type="button" id="btnXlsx" class="btn small">Export Excel</button>
+        </div>
+      </div>
+      <div id="tblWrap" class="tbl-wrap">
+        <table class="tbl"><thead id="tblHead"></thead><tbody id="tblBody"></tbody></table>
+      </div>
+      <div class="tbl-foot"><span id="tblInfo" class="muted"></span><div id="tblPager" class="pager"></div></div>
+    </section>
+
+    <details id="mapInfo" class="map-info"></details>
+    <footer class="muted foot">Data source: Google Sheets (published CSV) · Charts: Apache ECharts · Achievement % is always computed from aggregated Target and Actual.</footer>
+  </main>
+
+  <!-- Libraries (loaded from CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <!-- Application modules (order matters) -->
+  <script src="js/utils.js"></script>
+  <script src="js/dataService.js"></script>
+  <script src="js/insightEngine.js"></script>
+  <script src="js/filters.js"></script>
+  <script src="js/chartManager.js"></script>
+  <script src="js/tableManager.js"></script>
+  <script src="js/exportManager.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
