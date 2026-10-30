@@ -210,7 +210,7 @@ tr.vital td:first-child{box-shadow:inset 4px 0 0 var(--blue)}
 <section class="filters" aria-label="Filters">
   <div class="f-in">
     <nav class="nav" id="nav" aria-label="Dashboard sections">
-      <a href="#kpis">Overview</a><a href="#cards">Performance</a><a href="#card-cov">Accounts</a><a href="#card-mcl">MCL Monitoring</a><a href="#card-pareto">Pareto</a><a href="#card-detail">Details</a>
+      <a href="#kpis">Overview</a><a href="#cards">Performance</a><a href="#card-ba">Accounts</a><a href="#card-mcl">MCL Monitoring</a><a href="#card-pareto">Pareto</a><a href="#card-detail">Details</a>
     </nav>
     <div class="f-head">
       <h2>Filters</h2>
@@ -231,8 +231,17 @@ tr.vital td:first-child{box-shadow:inset 4px 0 0 var(--blue)}
     <section class="ibox" id="top-ins"><h2>Executive Insights</h2><ul id="topList"></ul></section>
     <section class="grid" id="cards"></section>
 
+    <section class="card wide" id="card-ba" style="margin-top:14px" hidden>
+      <div class="card-h"><div><h2>Total Buying Accounts</h2><p class="sub" id="baSub"></p></div>
+        <div class="tools"><button class="btn sm" data-png="ba">PNG</button><button class="btn sm" data-fs="ba">Full screen</button><button class="btn sm" id="baCsv">CSV</button><button class="btn sm primary" id="baXlsx">Excel</button></div></div>
+      <div class="kpis mk" id="baK"></div>
+      <div class="chart" id="ch-ba"></div><div class="empty" id="em-ba" hidden></div>
+      <div class="tw" id="baTbl"></div>
+      <div class="ins" id="ins-ba"></div>
+    </section>
+
     <section class="card wide" id="card-cov" style="margin-top:14px" hidden>
-      <div class="card-h"><div><h2>Uniques Buying Accounts by Salesperson and Channel</h2>
+      <div class="card-h"><div><h2>Buying Accounts and MCL Coverage by Salesperson and Channel</h2>
         <p class="sub" id="covSub"></p></div>
         <div class="tools"><select class="sel" id="covMetric" aria-label="Metric"><option value="acc">Unique buying accounts</option><option value="mcl">MCL product codes sold</option><option value="both">Both (accounts / MCL)</option></select>
         <button class="btn sm" id="covCsv">CSV</button><button class="btn sm" id="covXlsx">Excel</button></div></div>
@@ -295,6 +304,9 @@ tr.vital td:first-child{box-shadow:inset 4px 0 0 var(--blue)}
 /* ---------- config ---------- */
 const SHEET_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vQxYJVZKIkTB6AKZEcvosn3yx2u1Tad0Avb_Jp3NY92pBjKGfxYu_Qw1nh91t7fjae67U5u-3AXYqPu/pub?gid=0&single=true&output=csv';
 const MCL_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vQxYJVZKIkTB6AKZEcvosn3yx2u1Tad0Avb_Jp3NY92pBjKGfxYu_Qw1nh91t7fjae67U5u-3AXYqPu/pub?gid=2032612079&single=true&output=csv';
+// Buying Account targets (fixed per salesman, independent of the reporting period). Edit here to change them.
+const BA_DEFAULT=175;
+const BA_EXCEPTIONS=[{label:'Dennis Arabelo',target:69,match:n=>n.includes('dennis')&&n.includes('arabelo')}];
 const REFRESH_MS=5*60*1000;
 const MAX_DROPDOWN=250, PARETO_BARS=30, PARETO_CUT=0.8;
 // Header synonyms (normalised: lower-case letters and digits only). Earlier entries win ties.
@@ -734,6 +746,56 @@ function renderCoverage(){
 function covAoa(mode){ const cv=S.cv||coverage(), m=mode==='mcl'?cv.M:cv.A;
   return [['Salesperson'].concat(cv.chans,['Total (unique)'])].concat(cv.sales.map(s=>[s].concat(cv.chans.map(c=>covN(m,s,c)),[covN(m,s,null)])),[['Total (unique)'].concat(cv.chans.map(c=>covN(m,null,c)),[covN(m)])]); }
 
+/* ---------- Total Buying Accounts per salesman vs target ---------- */
+// Unique Buying Account = a distinct customer with sales > 0 in the filtered period, counted once per salesman however many transactions it has.
+// Performance % = Unique Buying Accounts / Target Buying Accounts x 100. Target = 175 for every salesman, 69 for Dennis Arabelo.
+function baTarget(name){ const n=nz(name); for(const e of BA_EXCEPTIONS) if(e.match(n)) return e.target; return BA_DEFAULT; }
+function baRows(){
+  const cs=canonFn('sales'), by=new Map(), all=new Set();
+  for(const r of S.view){ const s=cs(r.sales||'All'); let g=by.get(s); if(!g){ g={name:s,set:new Set()}; by.set(s,g); }
+    if(r.a>0&&r.customer&&r.customer!=='(Blank)'){ g.set.add(r.customer); all.add(r.customer); } }
+  const rows=[...by.values()].map(g=>{ const tg=baTarget(g.name), u=g.set.size, p=tg>0?u/tg*100:null; return {name:g.name,u,t:tg,p,band:band(p),gap:u-tg}; });
+  const T=rows.reduce((s,g)=>s+g.t,0), u=all.size, p=T>0?u/T*100:null;
+  return {rows,tot:{u,t:T,p,band:band(p)}};
+}
+function baSorted(rows){ const ts=S.baSort||{k:'p',dir:'asc'}, d=ts.dir==='asc'?1:-1, get=g=>({name:g.name,u:g.u,t:g.t,p:g.p})[ts.k];
+  return rows.slice().sort((x,y)=>{ const a=get(x), b=get(y); if(a==null&&b==null) return 0; if(a==null) return 1; if(b==null) return -1; return ((typeof a==='number'?a-b:nat(a,b))||nat(x.name,y.name))*d; }); }
+function baTip(g,C){ const row=(l,v,c)=>`<div style="display:flex;justify-content:space-between;gap:18px"><span>${l}</span><b${c?` style="color:${c}"`:''}>${v}</b></div>`;
+  return `<div style="font-weight:700;margin-bottom:4px">${esc(g.name)}</div>`+row('Unique Buying Accounts',fmt(g.u))+row('Target Buying Accounts',fmt(g.t))+row('Performance',fmtP(g.p),C['i'+g.band])+(g.gap<0?row('Accounts to target',fmt(-g.gap)):'')+`<div style="margin-top:3px;color:${C.muted};font-size:11px">Click to filter</div>`; }
+function renderBa(chartOnly){
+  const card=$('card-ba'), ok=('customer' in S.map)&&('sales' in S.map); card.hidden=!ok; if(!ok) return;
+  const {rows,tot}=baRows(); S.ba={rows,tot}; const C=colors(), sr=rows.slice().sort((x,y)=>(y.p==null?-1:y.p)-(x.p==null?-1:x.p));
+  $('baSub').textContent=`Distinct customers with sales > 0, counted once per salesman in the selected period (all current filters apply). Target ${BA_DEFAULT} per salesman${BA_EXCEPTIONS.map(e=>`, ${e.label} ${e.target}`).join('')}. Performance % = Unique \u00f7 Target \u00d7 100.`;
+  $('baK').innerHTML=[['Unique Buying Accounts',fmt(tot.u),'All salesmen, each account once','n'],['Target Buying Accounts',fmt(tot.t),`${rows.length} salesmen`,'n'],['Performance %',fmtP(tot.p),tot.p==null?'No target':BANDNAME[tot.band],tot.band]]
+    .map(k=>`<div class="kpi b-${k[3]}"><div class="l"><i></i>${k[0]}</div><div class="v num">${esc(k[1])}</div><div class="s">${esc(k[2])}</div></div>`).join('');
+  S.clicks=S.clicks||{}; S.clicks.ba=p=>{ const g=p.data&&p.data.g; if(g) drill('sales',g.name); };
+  $('em-ba').textContent='No salesmen match the current filters.';
+  $('ch-ba').style.height=Math.max(260,Math.min(680,sr.length>25?660:sr.length*30+90))+'px';
+  put('ba',rows.length?{textStyle:{fontFamily:cssv('--font-b')},grid:{left:8,right:64,top:12,bottom:sr.length>25?8:8,containLabel:true},
+    tooltip:{trigger:'axis',axisPointer:{type:'shadow'},confine:true,backgroundColor:C.surf,borderColor:C.line,textStyle:{color:C.ink,fontSize:12.5},formatter:ps=>baTip(sr[ps[0].dataIndex],C)},
+    xAxis:{type:'value',min:0,max:Math.max(120,...sr.map(g=>g.p||0))*1.08,axisLabel:{color:C.muted,formatter:'{value}%'},splitLine:{lineStyle:{color:C.line,type:'dashed'}}},
+    yAxis:{type:'category',inverse:true,data:sr.map(g=>g.name),axisTick:{show:false},axisLabel:{color:C.ink,interval:0,width:140,overflow:'truncate'}},
+    dataZoom:sr.length>25?[{type:'inside',yAxisIndex:0,start:0,end:25/sr.length*100,zoomLock:true},{type:'slider',yAxisIndex:0,start:0,end:25/sr.length*100,right:2,width:16,showDetail:false}]:undefined,
+    series:[{type:'bar',barWidth:'60%',data:sr.map(g=>({value:+(g.p||0).toFixed(2),g,itemStyle:{color:C[g.band==='n'?'line':g.band],borderRadius:[0,3,3,0]},label:{color:C['i'+g.band]||C.muted}})),
+      label:{show:true,position:'right',fontWeight:700,formatter:p=>fmtP(p.data.g.p)},
+      markLine:{silent:true,symbol:'none',lineStyle:{type:'dashed',color:C.ig},label:{formatter:'Target 100%',color:C.muted,position:'end'},data:[{xAxis:100}]}}]}:null);
+  if(chartOnly) return;
+  const ts=S.baSort||{k:'p',dir:'asc'}, th=(k,l,r)=>`<th class="${r?'r':''}" data-bs="${k}" aria-sort="${ts.k===k?(ts.dir==='asc'?'ascending':'descending'):'none'}">${l}${ts.k===k?(ts.dir==='asc'?' \u25b2':' \u25bc'):''}</th>`;
+  $('baTbl').innerHTML=`<table><thead><tr>${th('name','Salesman')}${th('u','Unique Buying Accounts',1)}${th('t','Target Buying Accounts',1)}${th('p','Buying Account Performance (%)',1)}</tr></thead><tbody>`+
+    baSorted(rows).map(g=>`<tr class="clk" data-bp="${esc(g.name)}"><td>${esc(g.name)}</td><td class="r num">${fmt(g.u)}</td><td class="r num">${fmt(g.t)}</td><td class="r num cell-${g.band==='n'?'':g.band}">${fmtP(g.p)}</td></tr>`).join('')+
+    `</tbody><tfoot><tr class="gt"><td><b>Total (each account counted once)</b></td><td class="r num"><b>${fmt(tot.u)}</b></td><td class="r num"><b>${fmt(tot.t)}</b></td><td class="r num cell-${tot.band==='n'?'':tot.band}"><b>${fmtP(tot.p)}</b></td></tr></tfoot></table>`;
+  const v=rows.filter(g=>g.p!=null).sort((x,y)=>y.p-x.p), ins=[];
+  if(v.length){ const hi=v[0], lo=v[v.length-1], red=v.filter(g=>g.p<90).sort((x,y)=>x.gap-y.gap), short=v.filter(g=>g.gap<0), sh=short.reduce((s,g)=>s-g.gap,0), nm=a=>a.slice(0,3).map(g=>g.name).join(', ')+(a.length>3?' +'+(a.length-3)+' more':'');
+    ins.push({k:'Key Finding',b:tot.band,v:`${fmt(tot.u)} unique buying accounts against a combined target of ${fmt(tot.t)} (${fmtP(tot.p)}). ${v.filter(g=>g.p>=100).length} of ${v.length} salesmen reached target.`},
+      {k:'Top Performer',b:hi.band,v:`${hi.name}: ${fmt(hi.u)} of ${fmt(hi.t)} accounts (${fmtP(hi.p)}).`},
+      {k:'Lowest Performer',b:lo.band,v:`${lo.name}: ${fmt(lo.u)} of ${fmt(lo.t)} accounts (${fmtP(lo.p)}).`},
+      {k:'Gap Analysis',b:sh?'r':'g',v:sh?`Salesmen below target are short by ${fmt(sh)} accounts in total; largest gap ${short.sort((x,y)=>x.gap-y.gap)[0].name} (${fmt(-short[0].gap)}).`:'Every salesman is at or above the buying account target.'},
+      {k:'Risk Area',b:red.length?'r':'g',v:red.length?`${red.length} salesm${red.length>1?'en are':'an is'} below 90%: ${nm(red)}.`:'No salesman is below 90% of target.'},
+      {k:'Recommended Action',b:'n',v:red.length?`Run account-activation drives for ${nm(red)}: reactivate dormant outlets, add new outlets in uncovered areas and track weekly unique accounts.`:'Sustain coverage and focus on repeat purchase depth in existing accounts.'}); }
+  $('ins-ba').innerHTML=insHtml(ins);
+}
+function baAoa(){ const b=S.ba||baRows(); return [['Salesman','Unique Buying Accounts','Target Buying Accounts','Buying Account Performance (%)']].concat(baSorted(b.rows).map(g=>[g.name,g.u,g.t,g.p==null?'N/A':+g.p.toFixed(2)]),[['Total',b.tot.u,b.tot.t,b.tot.p==null?'N/A':+b.tot.p.toFixed(2)]]); }
+
 /* ---------- MCL Monitoring (second sheet): Salesman x Store Format ---------- */
 // MCL % = Actual MCL / MCL Target x 100. Green >= 100, yellow 80 to 99.99, red < 80. A missing, blank, zero or negative target gives N/A (never a division error).
 const mband=p=>p==null||!isFinite(p)?'n':p>=100?'g':p>=80?'y':'r';
@@ -926,7 +988,7 @@ function renderPareto(){
   const more=$('paretoMore'); more.hidden=gs.length<=15; more.textContent=S.paretoAll?'Show top 15 only':`Show all ${fmt(Math.min(gs.length,500))} customers`;
 }
 function toggleFs(id){ const card=$('card-'+id); if(!card) return; const on=card.classList.toggle('fs'); document.body.style.overflow=on?'hidden':''; setTimeout(()=>{ const c=charts[id]; if(c&&!c.isDisposed()) c.resize(); },60); }
-function renderAllCharts(){ renderCards(); renderPareto(); renderMcl(true); }
+function renderAllCharts(){ renderCards(); renderPareto(); renderBa(true); renderMcl(true); }
 
 /* ---------- detail table ---------- */
 function tableCols(){
@@ -998,7 +1060,7 @@ async function exportPdf(){
   const prevTheme=document.documentElement.getAttribute('data-theme'); S.noAnim=true;
   try{
     document.documentElement.setAttribute('data-theme','light'); renderAllCharts(); await new Promise(r=>setTimeout(r,80));
-    const imgs={}; ['sales','product','channel','format','mcl','pareto'].forEach(id=>{ const c=charts[id]; if(c&&!c.isDisposed()&&!$('ch-'+id).hidden) imgs[id]={url:c.getDataURL({type:'jpeg',pixelRatio:2,backgroundColor:'#ffffff'}),w:c.getWidth(),h:c.getHeight()}; });
+    const imgs={}; ['sales','product','channel','format','ba','mcl','pareto'].forEach(id=>{ const c=charts[id]; if(c&&!c.isDisposed()&&!$('ch-'+id).hidden) imgs[id]={url:c.getDataURL({type:'jpeg',pixelRatio:2,backgroundColor:'#ffffff'}),w:c.getWidth(),h:c.getHeight()}; });
     const doc=new window.jspdf.jsPDF({orientation:'landscape',unit:'mm',format:'a4'}), W=297, M=14; let y=0;
     const head=t=>{ doc.setFillColor(0,87,160); doc.rect(0,0,W,16,'F'); doc.setTextColor(255); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(clean(t),M,10.5); doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.text('FAST Unimerchant Inc.',W-M,10.5,{align:'right'}); doc.setTextColor(20,36,58); y=24; };
     const para=(txt,size=9,bold=false)=>{ doc.setFont('helvetica',bold?'bold':'normal'); doc.setFontSize(size); const ls=doc.splitTextToSize(clean(txt),W-2*M); ls.forEach(l=>{ if(y>198){ doc.addPage(); head('Sellout KPI Dashboard (continued)'); doc.setFont('helvetica',bold?'bold':'normal'); doc.setFontSize(size); } doc.text(l,M,y); y+=size*0.45+1.4; }); };
@@ -1014,6 +1076,7 @@ async function exportPdf(){
     (S.topText||[]).forEach(t=>para('- '+t,9));
     const sections=[['sales','Salesperson Performance',()=>insightRows(DIMS[0],groupBy(S.view,'sales'))],['product','Product Classification Performance',()=>insightRows(DIMS[1],groupBy(S.view,'product'))],
       ['channel','Channel Performance',()=>insightRows(DIMS[2],groupBy(S.view,'channel'))],['format','Store Format Performance',()=>insightRows(DIMS[3],groupBy(S.view,'format'))],
+      ['ba','Total Buying Accounts vs Target',()=>{ const b=S.ba||baRows(); return b.rows.length?[{k:'Summary',v:b.tot.u+' unique buying accounts vs target '+b.tot.t+' ('+fmtP(b.tot.p)+'). Target: '+BA_DEFAULT+' per salesman, '+BA_EXCEPTIONS.map(e=>e.label+' '+e.target).join(', ')+'.'}]:[]; }],
       ['mcl','MCL Monitoring: Salesman x Store Format',()=>mclInsights(S.mclG||mclGroups(),mclTotal(S.mclG||mclGroups()))],
       ['pareto','Pareto Analysis: Top Customers (80/20)',()=>paretoInsights(S.pareto||paretoData())]];
     for(const [id,title,fn] of sections){ if(!imgs[id]) continue; doc.addPage(); head(title); const im=imgs[id]; const maxH=108, maxW=W-2*M; let w=maxW,h=w*im.h/im.w; if(h>maxH){ h=maxH; w=h*im.w/im.h; }
@@ -1074,7 +1137,7 @@ let raf=0; function update(){ cancelAnimationFrame(raf); raf=requestAnimationFra
 function render(){
   if(!S.rows.length) return; applyFilters(); renderChips(); (S.defs||[]).forEach(d=>d.refresh&&d.refresh());
   const none=!S.view.length; if(none) showMsg(`<b>No records match the current filters.</b> <div class="row"><button class="btn sm primary" id="clearAll">Clear all filters</button></div>`,true); else if($('msg').classList.contains('info')) hideMsg();
-  renderKpis(); renderTop(); renderAllCharts(); renderCoverage(); renderMcl(); renderTable(); syncNav();
+  renderKpis(); renderTop(); renderAllCharts(); renderBa(); renderCoverage(); renderMcl(); renderTable(); syncNav();
 }
 function renderFoot(bad){
   const m=S.map, name=k=>k in m?esc(S.headers[m[k]]):'<i>not found</i>';
@@ -1102,6 +1165,8 @@ document.addEventListener('click',e=>{
   else if(t.closest('[data-clr]')){ clearFilter(t.closest('[data-clr]').dataset.clr); update(); }
   else if(t.closest('[data-png]')){ const id=t.closest('[data-png]').dataset.png, c=charts[id]; if(c&&!c.isDisposed()) download(id+'-chart.png',c.getDataURL({type:'png',pixelRatio:2,backgroundColor:cssv('--surface')})); else toast('Nothing to export for this chart.'); }
   else if(t.closest('[data-cov]')){ const td=t.closest('[data-cov]'); if('sales' in S.map) S.sel.sales=new Set([td.dataset.s]); if('channel' in S.map) S.sel.channel=new Set([td.dataset.c]); buildFilters(); update(); toast('Filtered to '+td.dataset.s+' / '+td.dataset.c); }
+  else if(t.closest('th[data-bs]')){ const k=t.closest('th').dataset.bs; S.baSort=S.baSort&&S.baSort.k===k?{k,dir:S.baSort.dir==='asc'?'desc':'asc'}:{k,dir:'asc'}; renderBa(); }
+  else if(t.closest('tr[data-bp]')) drill('sales',t.closest('tr').dataset.bp);
   else if(t.closest('th[data-ms]')){ const k=t.closest('th').dataset.ms; M.tsort=M.tsort&&M.tsort.k===k?{k,dir:M.tsort.dir==='asc'?'desc':'asc'}:{k,dir:'asc'}; renderMclTable(); }
   else if(t.closest('tr[data-mp]')){ const tr=t.closest('tr'); drillPair([['sales',tr.dataset.ms2],['format',tr.dataset.mf]]); }
   else if(t.closest('[data-fs]')) toggleFs(t.closest('[data-fs]').dataset.fs);
@@ -1115,6 +1180,10 @@ document.addEventListener('change',e=>{
 });
 $('refresh').addEventListener('click',()=>load(true));
 $('pdf').addEventListener('click',exportPdf);
+$('baCsv').addEventListener('click',()=>download('buying-accounts-performance.csv',new Blob(['\ufeff'+Papa.unparse(baAoa())],{type:'text/csv;charset=utf-8'})));
+$('baXlsx').addEventListener('click',()=>{ if(!window.XLSX){ toast('Excel library not loaded.'); return; } const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(baAoa()),'Buying Accounts');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Exported',new Date().toLocaleString()],['Filters applied',filterSummary()],['Rule','Unique Buying Accounts = distinct customers with sales > 0, once per salesman in the selected period'],['Target',BA_DEFAULT+' per salesman; '+BA_EXCEPTIONS.map(e=>e.label+' '+e.target).join('; ')],['Performance %','Unique / Target x 100']]),'Info'); XLSX.writeFile(wb,'buying-accounts-performance.xlsx'); });
 $('mclView').addEventListener('change',()=>renderMcl(true));
 $('mclCsv').addEventListener('click',()=>download('mcl-monitoring.csv',new Blob(['\ufeff'+Papa.unparse(mclAoa())],{type:'text/csv;charset=utf-8'})));
 $('mclXlsx').addEventListener('click',()=>{ if(!window.XLSX){ toast('Excel library not loaded.'); return; } const wb=XLSX.utils.book_new(), T=mclTotal(S.mclG||[]);
