@@ -99,6 +99,19 @@ h1,h2,h3{font-family:var(--font-h);margin:0;text-wrap:balance}
 .chip button{border:0;background:transparent;cursor:pointer;font-size:14px;line-height:1;padding:2px 6px;border-radius:50%}
 .chip button:hover{background:color-mix(in srgb,var(--blue) 25%,transparent)}
 #fToggle{display:none}
+.nav{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid var(--line);scrollbar-width:none}
+.nav a{flex:none;text-decoration:none;color:var(--ink);font:600 12.5px var(--font-h);padding:6px 14px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface)}
+.nav a:hover{border-color:var(--blue)}
+.nav a.on{background:var(--blue);border-color:var(--blue);color:var(--on-fill)}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+#kpis,#cards,.card{scroll-margin-top:var(--sh,170px)}
+.lgd{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:12px;color:var(--muted)}
+.lgd i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.kpis.mk{margin-top:12px;grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:560px){.kpis.mk{grid-template-columns:repeat(3,minmax(0,1fr))}.mk .v{font-size:19px}.mk .kpi{padding:10px}}
+td.na{color:var(--muted);font-style:italic}
+tr.clk{cursor:pointer}
 @media (max-width:720px){
   #fToggle{display:inline-block}
   .f-grid.closed{display:none}
@@ -113,8 +126,8 @@ h1,h2,h3{font-family:var(--font-h);margin:0;text-wrap:balance}
 .banner b{font-family:var(--font-h)}
 .banner .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 main{padding:18px 0 48px}
-.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-@media (max-width:980px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px}
+@media (max-width:560px){.kpis{grid-template-columns:repeat(2,1fr)}}
 .kpi{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0;display:flex;flex-direction:column;gap:4px}
 .kpi .l{display:flex;align-items:center;gap:7px;font:600 11px var(--font-h);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
 .kpi .l i{width:9px;height:9px;border-radius:50%;background:var(--c);flex:none}
@@ -162,6 +175,9 @@ th:hover{color:var(--blue-ink)}
 td.r,th.r{text-align:right}
 tr:hover td{background:var(--hover)}
 td.cell-g{color:var(--i-g);font-weight:700}td.cell-y{color:var(--i-y);font-weight:700}td.cell-r{color:var(--i-r);font-weight:700}
+td.tot{font-weight:700;background:var(--hover)}
+tr.gt td{border-top:2px solid var(--line);background:var(--hover)}
+td[data-cov]{cursor:pointer}
 tr.vital td:first-child{box-shadow:inset 4px 0 0 var(--blue)}
 .pager{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;font-size:12.5px}
 .pager .grow{flex:1}
@@ -193,6 +209,9 @@ tr.vital td:first-child{box-shadow:inset 4px 0 0 var(--blue)}
 
 <section class="filters" aria-label="Filters">
   <div class="f-in">
+    <nav class="nav" id="nav" aria-label="Dashboard sections">
+      <a href="#kpis">Overview</a><a href="#cards">Performance</a><a href="#card-cov">Accounts</a><a href="#card-mcl">MCL Monitoring</a><a href="#card-pareto">Pareto</a><a href="#card-detail">Details</a>
+    </nav>
     <div class="f-head">
       <h2>Filters</h2>
       <button class="btn sm" id="fToggle" aria-expanded="true">Show / hide</button>
@@ -211,6 +230,30 @@ tr.vital td:first-child{box-shadow:inset 4px 0 0 var(--blue)}
     <section class="kpis" id="kpis" aria-label="Key performance indicators"></section>
     <section class="ibox" id="top-ins"><h2>Executive Insights</h2><ul id="topList"></ul></section>
     <section class="grid" id="cards"></section>
+
+    <section class="card wide" id="card-cov" style="margin-top:14px" hidden>
+      <div class="card-h"><div><h2>Buying Accounts and MCL Coverage by Salesperson and Channel</h2>
+        <p class="sub" id="covSub"></p></div>
+        <div class="tools"><select class="sel" id="covMetric" aria-label="Metric"><option value="acc">Unique buying accounts</option><option value="mcl">MCL product codes sold</option><option value="both">Both (accounts / MCL)</option></select>
+        <button class="btn sm" id="covCsv">CSV</button><button class="btn sm" id="covXlsx">Excel</button></div></div>
+      <div class="tw" id="covTbl"></div><div class="ins" id="ins-cov"></div>
+    </section>
+
+    <section class="card wide" id="card-mcl" style="margin-top:14px" hidden>
+      <div class="card-h"><div><h2>MCL Monitoring</h2><p class="sub" id="mclSub"></p></div>
+        <div class="tools"><select class="sel" id="mclView" aria-label="MCL chart view"><option value="heat">Heatmap: Salesman x Store Format</option><option value="sales">Bars: by Salesman</option><option value="format">Bars: by Store Format</option></select>
+        <button class="btn sm" data-png="mcl">PNG</button><button class="btn sm" data-fs="mcl">Full screen</button></div></div>
+      <div id="mclMsg" class="banner" hidden></div>
+      <div id="mclBody">
+        <div class="kpis mk" id="mclK"></div>
+        <div class="lgd"><span><i style="background:var(--s-g)"></i>MCL % &ge; 100%</span><span><i style="background:var(--s-y)"></i>80% to 99.99%</span><span><i style="background:var(--s-r)"></i>&lt; 80%</span><span><i style="background:var(--line)"></i>N/A (no or zero target)</span></div>
+        <div class="chart" id="ch-mcl"></div><div class="empty" id="em-mcl" hidden></div>
+        <div class="ins" id="ins-mcl"></div>
+        <div class="card-h" style="margin-top:14px"><div><h3 style="font-size:14px">MCL by Salesman and Store Format</h3><p class="sub">Click a column header to sort. Click a row to filter the dashboard.</p></div>
+          <div class="tools"><button class="btn sm" id="mclCsv">CSV</button><button class="btn sm primary" id="mclXlsx">Excel</button></div></div>
+        <div class="tw" id="mclTbl"></div>
+      </div>
+    </section>
 
     <section class="card wide" id="card-pareto" style="margin-top:14px">
       <div class="card-h"><div><h2>Pareto Analysis: Top Customers Driving 80% of Sales</h2>
@@ -251,6 +294,7 @@ tr.vital td:first-child{box-shadow:inset 4px 0 0 var(--blue)}
 
 /* ---------- config ---------- */
 const SHEET_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vQxYJVZKIkTB6AKZEcvosn3yx2u1Tad0Avb_Jp3NY92pBjKGfxYu_Qw1nh91t7fjae67U5u-3AXYqPu/pub?gid=0&single=true&output=csv';
+const MCL_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vQxYJVZKIkTB6AKZEcvosn3yx2u1Tad0Avb_Jp3NY92pBjKGfxYu_Qw1nh91t7fjae67U5u-3AXYqPu/pub?gid=2032612079&single=true&output=csv';
 const REFRESH_MS=5*60*1000;
 const MAX_DROPDOWN=250, PARETO_BARS=30, PARETO_CUT=0.8;
 // Header synonyms (normalised: lower-case letters and digits only). Earlier entries win ties.
@@ -266,9 +310,11 @@ const FIELDS={
   channel:{label:'Channel',syn:['channel','saleschannel','tradechannel','channelname','distributionchannel'],not:/target|actual|status/},
   format:{label:'Store Format',syn:['storeformat','format','outlettype','storetype','outletformat','storeformatname','outletclass','accounttype'],not:/target|actual|status/},
   product:{label:'Product Classification',syn:['productclassification','productclass','classification','productcategory','category','productgroup','productline','skuclassification'],not:/target|actual|status/},
+  mcl:{label:'MCL',min:3,syn:['mcl','mclcode','mclproductcode','mclsku','mclitem','mclflag','mclstatus','ismcl','mustcarrylist','mustcarry','mustcarryitem'],not:/^$/},
+  pcode:{label:'Product Code',syn:['productcode','skucode','sku','itemcode','materialcode','prodcode','productsku','productid','fgcode','item'],not:/mcl|name|desc|class|categ/},
   customer:{label:'Customer',syn:['customer','customername','account','accountname','outlet','outletname','storename','client','soldto','customerdescription','store'],not:/target|actual|status|format|type/}
 };
-const ORDER=['target','actual','status','achv','gap','date','sales','channel','format','product','customer'];
+const ORDER=['target','actual','status','achv','gap','date','sales','channel','format','product','customer','mcl','pcode'];
 // Dimensions that get a filter, a chart and a KPI. Order = display order.
 const DIMS=[
   {key:'sales',label:'Salesperson',one:'salesperson',many:'salespersons',horiz:true,
@@ -281,6 +327,15 @@ const DIMS=[
     act:'tighten in-store execution (visibility, planogram, replenishment) in the weak formats and replicate what works in the leaders'},
   {key:'customer',label:'Customer',one:'customer',many:'customers',horiz:true,act:''}
 ];
+// MCL sheet columns (second CSV). Same detection method as the main sheet.
+const FM={
+  target:{label:'MCL Target',syn:['mcltarget','targetmcl','mcltgt','mcltargetcount','mcltargetsku','mcltargetcodes','target','tgt'],not:/actual|percent|achiev|gap|variance|status/},
+  actual:{label:'Actual MCL',syn:['actualmcl','mclactual','actualmclcount','mclactualcount','actualmclsku','mclsold','mclcount','actualmclcodes','actual'],not:/target|tgt|percent|achiev|gap|variance|status/},
+  pct:{label:'MCL %',syn:['mclpct','mclpercent','mclpercentage','mclachievement','mclach','achievement','ach','mcl'],not:/^$/},
+  date:FIELDS.date,sales:FIELDS.sales,channel:FIELDS.channel,format:FIELDS.format,product:FIELDS.product,customer:FIELDS.customer
+};
+const ORDM=['target','actual','pct','date','sales','channel','format','product','customer'];
+const REGION_ALIAS=['region','area','territory','zone','district','branch'];
 const CARD_DIMS=['sales','product','channel','format'];
 
 /* ---------- utils ---------- */
@@ -343,37 +398,43 @@ const charts={};
 try{ S.ovr=JSON.parse(store.get('sokpi-map')||'{}')||{}; }catch(e){ S.ovr={}; }
 
 /* ---------- data: header detection ---------- */
-function mapHeaders(hdr){
+function mapHeaders(hdr,F,ORD){
+  F=F||FIELDS; ORD=ORD||ORDER;
   const H=hdr.map(nz), used=new Set(), out={};
-  for(const k of ORDER){ // pass 1: exact synonym match, earlier synonym = stronger
-    const syn=FIELDS[k].syn; let best=-1,bs=-1;
+  for(const k of ORD){ // pass 1: exact synonym match, earlier synonym = stronger
+    const syn=F[k].syn; let best=-1,bs=-1;
     H.forEach((h,i)=>{ if(used.has(i)||!h) return; const p=syn.indexOf(h); if(p>=0&&syn.length-p>bs){bs=syn.length-p;best=i;} });
     if(best>=0){out[k]=best;used.add(best);}
   }
-  for(const k of ORDER){ // pass 2: header contains a (long enough) synonym
-    if(k in out) continue; const f=FIELDS[k]; let best=-1,bs=0;
-    H.forEach((h,i)=>{ if(used.has(i)||!h||f.not.test(h)) return; f.syn.forEach(s=>{ if(s.length>=4&&h.includes(s)&&s.length>bs){bs=s.length;best=i;} }); });
+  for(const k of ORD){ // pass 2: header contains a (long enough) synonym
+    if(k in out) continue; const f=F[k]; let best=-1,bs=0;
+    H.forEach((h,i)=>{ if(used.has(i)||!h||f.not.test(h)) return; f.syn.forEach(s=>{ if(s.length>=(f.min||4)&&h.includes(s)&&s.length>bs){bs=s.length;best=i;} }); });
     if(best>=0){out[k]=best;used.add(best);}
   }
   return out;
 }
-function detectHeaderRow(grid){
+function detectHeaderRow(grid,F,ORD){
   let best=0,bs=-1;
   for(let r=0;r<Math.min(40,grid.length);r++){
-    const m=mapHeaders(grid[r]); const sc=Object.keys(m).length+('target' in m&&'actual' in m?10:0);
+    const m=mapHeaders(grid[r],F,ORD); const sc=Object.keys(m).length+('target' in m&&'actual' in m?10:0);
     if(sc>bs){bs=sc;best=r;}
   }
   return best;
 }
-function applyOverrides(map,n){
-  for(const k of Object.keys(S.ovr)){ const v=S.ovr[k]; if(v===-1) delete map[k]; else if(v>=0&&v<n){ for(const o of Object.keys(map)) if(map[o]===v&&o!==k) delete map[o]; map[k]=v; } }
+function applyOverrides(map,n,ovr){
+  for(const k of Object.keys(ovr)){ const v=ovr[k]; if(v===-1) delete map[k]; else if(v>=0&&v<n){ for(const o of Object.keys(map)) if(map[o]===v&&o!==k) delete map[o]; map[k]=v; } }
 }
 
 /* ---------- data: ingest ---------- */
+const TRUTHY=/^(y|yes|true|1|x|mcl|\u2713|\u2714)$/i, FALSY=/^(n|no|false|0|-|none|n\/a|na|null)$/i;
+// MCL (Must Carry List) code of a row, or null when the row is not an MCL line.
+// MCL column holds Yes/No flags -> use the Product Code column; if it holds codes itself, use them directly.
+function mclCode(c,map){ if(map.mcl==null) return null; const v=c[map.mcl]; if(!v||FALSY.test(v)) return null;
+  if(TRUTHY.test(v)) return map.pcode!=null?(c[map.pcode]||null):null; return v; }
 function ingest(grid){
   S.hrow=detectHeaderRow(grid);
   const hdr=(grid[S.hrow]||[]).map(h=>String(h==null?'':h).trim());
-  const map=mapHeaders(hdr); applyOverrides(map,hdr.length);
+  const map=mapHeaders(hdr); applyOverrides(map,hdr.length,S.ovr);
   S.headers=hdr.map((h,i)=>h||('Column '+(i+1))); S.map=map;
   if(!('target' in map)||!('actual' in map)){ S.rows=[]; S.view=[]; return false; }
   const body=grid.slice(S.hrow+1), rows=[]; let skipped=0;
@@ -388,6 +449,7 @@ function ingest(grid){
     if(t==null&&a==null){ skipped++; continue; }
     const r={c,t:t==null?0:t,a:a==null?0:a,st:'status' in map?c[map.status]:''};
     for(const k of dimKeys) r[k]=c[map[k]]||'(Blank)';
+    r.mcl=mclCode(c,map);
     rows.push(r);
   }
   S.skipped=skipped; S.rows=rows;
@@ -407,33 +469,71 @@ function ingest(grid){
   return true;
 }
 
+/* ---------- MCL sheet: ingest ---------- */
+const M={grid:null,rows:[],view:[],map:{},headers:[],hrow:0,ovr:{},extra:[],hasDate:false,ok:false,err:'',lastText:'',skipped:0};
+try{ M.ovr=JSON.parse(store.get('sokpi-mapM')||'{}')||{}; }catch(e){ M.ovr={}; }
+function ingestMcl(grid){
+  M.hrow=detectHeaderRow(grid,FM,ORDM);
+  const hdr=(grid[M.hrow]||[]).map(h=>String(h==null?'':h).trim());
+  const map=mapHeaders(hdr,FM,ORDM); applyOverrides(map,hdr.length,M.ovr);
+  M.headers=hdr.map((h,i)=>h||('Column '+(i+1))); M.map=map; M.rows=[]; M.view=[]; M.extra=[]; M.hasDate=false; M.skipped=0;
+  if(!('target' in map)||!('actual' in map)){ M.ok=false; return false; }
+  const dims=['sales','channel','format','product','customer'].filter(k=>k in map), rows=[];
+  for(const raw of grid.slice(M.hrow+1)){
+    const c=raw.map(x=>String(x==null?'':x).trim()); if(!c.some(x=>x)) continue;
+    const first=c.find(x=>x)||'';
+    if(/^(grand\s*|sub\s*)?total\b/i.test(first)||dims.some(k=>/^(grand\s*|sub\s*)?total\b/i.test(c[map[k]]||''))){ M.skipped++; continue; }
+    const a=parseNum(c[map.actual]), t=parseNum(c[map.target]);
+    const r={c,a:a==null||!isFinite(a)?0:a,t:t==null||!isFinite(t)?0:t};
+    for(const k of dims) r[k]=c[map[k]]||'(Blank)';
+    rows.push(r);
+  }
+  M.rows=rows;
+  if('date' in map){ let ok=0,tot=0; for(const r of rows){ const v=r.c[map.date]; if(!v) continue; tot++; const d=parseDate(v); if(d){ r.d=d; ok++; } } M.hasDate=tot>0&&ok/tot>=.6; if(!M.hasDate) for(const r of rows) r.d=null; }
+  const mapped=new Set(Object.values(map)), sample=rows.slice(0,400);
+  hdr.forEach((h,i)=>{ if(mapped.has(i)||!h) return; let n=0,v=0; for(const r of sample){ if(r.c[i]){ n++; if(parseNum(r.c[i])!=null) v++; } } if(n&&v/n>=.8) return;
+    const set=new Set(); for(const r of rows){ const x=r.c[i]; if(x) set.add(x); if(set.size>30) break; }
+    if(set.size>=2&&set.size<=30&&rows.length>set.size*2) M.extra.push({key:'m'+i,idx:i,label:M.headers[i]}); });
+  M.ok=true; return true;
+}
+
 /* ---------- filters ---------- */
+const sameCol=(a,b)=>{ const A=nz(a),B=nz(b); return A===B||(REGION_ALIAS.includes(A)&&REGION_ALIAS.includes(B)); };
+// One filter per dimension; each may read the sellout sheet (get), the MCL sheet (mget) or both, so a filter drives every section.
 function filterDefs(){
-  const defs=[]; DIMS.forEach(d=>{ if(d.key in S.map) defs.push({key:d.key,label:d.label,get:r=>r[d.key]}); });
-  S.extra.forEach(x=>defs.push({key:x.key,label:x.label,get:r=>r.c[x.idx]||'(Blank)'}));
+  if(S.defs) return S.defs;
+  const defs=[], used=new Set();
+  DIMS.forEach(d=>{ const inS=d.key in S.map, inM=d.key in M.map; if(inS||inM) defs.push({key:d.key,label:d.label,get:inS?r=>r[d.key]:null,mget:inM?r=>r[d.key]:null}); });
+  S.extra.forEach(x=>{ const mi=M.extra.find(y=>sameCol(y.label,x.label)); if(mi) used.add(mi.key);
+    defs.push({key:x.key,label:x.label,get:r=>r.c[x.idx]||'(Blank)',mget:mi?(r=>r.c[mi.idx]||'(Blank)'):null}); });
+  M.extra.forEach(y=>{ if(!used.has(y.key)) defs.push({key:y.key,label:y.label,get:null,mget:r=>r.c[y.idx]||'(Blank)'}); });
   return defs;
 }
-function valuesOf(def){ const set=new Set(); for(const r of S.rows) set.add(def.get(r)); return [...set].sort((a,b)=>String(a).localeCompare(String(b),undefined,{numeric:true,sensitivity:'base'})); }
+function valuesOf(def){
+  const raw=new Set(); if(def.get) for(const r of S.rows) raw.add(def.get(r)); if(def.mget) for(const r of M.rows) raw.add(def.mget(r));
+  const m=new Map(); raw.forEach(v=>{ const k=nz(v)||String(v); let e=m.get(k); if(!e){ e={disp:v,raws:[]}; m.set(k,e); } e.raws.push(v); });
+  def.raws=new Map(); def.canon=new Map(); const vals=[]; m.forEach((e,k)=>{ def.raws.set(e.disp,e.raws); def.canon.set(k,e.disp); vals.push(e.disp); });
+  return vals.sort(nat);
+}
+function canonVal(key,val){ const d=filterDefs().find(x=>x.key===key); return d&&d.canon?(d.canon.get(nz(val)||String(val))||val):val; }
+function expandSel(d){ const s=S.sel[d.key]; if(!s) return null; const e=new Set(); s.forEach(v=>(d.raws&&d.raws.get(v)||[v]).forEach(x=>e.add(x))); return e; }
 function applyFilters(){
-  const defs=filterDefs().filter(d=>S.sel[d.key]);
+  const act=filterDefs().map(d=>({d,e:expandSel(d)})).filter(x=>x.e);
   const df=S.dFrom?new Date(S.dFrom+'T00:00:00'):null, dt=S.dTo?new Date(S.dTo+'T23:59:59'):null;
-  S.view=S.rows.filter(r=>{
-    for(const d of defs){ if(!S.sel[d.key].has(d.get(r))) return false; }
-    if(S.hasDate&&(df||dt)){ if(!r.d) return false; if(df&&r.d<df) return false; if(dt&&r.d>dt) return false; }
-    return true;
-  });
+  const dOk=r=>{ if(!r.d) return false; if(df&&r.d<df) return false; if(dt&&r.d>dt) return false; return true; };
+  S.view=S.rows.filter(r=>{ for(const {d,e} of act){ if(d.get&&!e.has(d.get(r))) return false; } if(S.hasDate&&(df||dt)&&!dOk(r)) return false; return true; });
+  M.view=M.rows.filter(r=>{ for(const {d,e} of act){ if(d.mget&&!e.has(d.mget(r))) return false; } if(M.hasDate&&(df||dt)&&!dOk(r)) return false; return true; });
 }
 function buildFilters(){
-  const g=$('fGrid'); g.innerHTML='';
-  // keep still-valid selections across refreshes
-  S.defs=[];
-  filterDefs().forEach(def=>{
-    S.defs.push(def); def.values=valuesOf(def);
-    const cur=S.sel[def.key]; if(cur){ const keep=new Set([...cur].filter(v=>def.values.includes(v))); S.sel[def.key]=keep.size&&keep.size<def.values.length?keep:null; }
+  const g=$('fGrid'); g.innerHTML=''; S.defs=null; S.defs=filterDefs();
+  S.defs.forEach(def=>{
+    def.values=valuesOf(def);
+    const cur=S.sel[def.key]; if(cur){ const keep=new Set([...cur].map(v=>canonVal(def.key,v)).filter(v=>def.values.includes(v))); S.sel[def.key]=keep.size&&keep.size<def.values.length?keep:null; }
     g.appendChild(makeMS(def));
   });
-  if(S.hasDate){
-    const ds=S.rows.map(r=>r.d).filter(Boolean).map(d=>+d), mn=ymd(new Date(Math.min(...ds))), mx=ymd(new Date(Math.max(...ds)));
+  const anyDate=S.hasDate||M.hasDate;
+  if(anyDate){
+    const ds=S.rows.concat(M.rows).map(r=>r.d).filter(Boolean).map(d=>+d); let mn=ymd(new Date(ds.reduce((a,b)=>Math.min(a,b),Infinity))), mx=ymd(new Date(ds.reduce((a,b)=>Math.max(a,b),-Infinity)));
     ['From','To'].forEach(w=>{ const el=document.createElement('label'); el.className='dt'; el.innerHTML=`<span>Date ${w.toLowerCase()}</span><input type="date" min="${mn}" max="${mx}" value="${w==='From'?S.dFrom:S.dTo}" data-d="${w}">`;
       el.querySelector('input').addEventListener('change',e=>{ S[w==='From'?'dFrom':'dTo']=e.target.value; update(); }); g.appendChild(el); });
   } else { S.dFrom=S.dTo=''; }
@@ -476,9 +576,16 @@ function renderChips(){
 }
 function clearFilter(k){ if(k==='date'){ S.dFrom=S.dTo=''; document.querySelectorAll('.dt input').forEach(i=>i.value=''); } else S.sel[k]=null; }
 function drill(key,val){
-  const s=S.sel[key]; if(s&&s.size===1&&s.has(val)){ S.sel[key]=null; toast(`Cleared ${DIMS.find(d=>d.key===key).label} filter`); }
-  else { S.sel[key]=new Set([val]); toast(`Filtered ${DIMS.find(d=>d.key===key).label}: ${val} (click again to clear)`); }
+  val=canonVal(key,val); const s=S.sel[key], lab=(DIMS.find(d=>d.key===key)||{label:key}).label;
+  if(s&&s.size===1&&s.has(val)){ S.sel[key]=null; toast(`Cleared ${lab} filter`); }
+  else { S.sel[key]=new Set([val]); toast(`Filtered ${lab}: ${val} (click again to clear)`); }
   update();
+}
+function drillPair(pairs){ // pairs of [filterKey,value]; toggles all together (used by the MCL heatmap)
+  pairs=pairs.filter(([k,v])=>v!=='All'&&filterDefs().some(d=>d.key===k)); if(!pairs.length) return;
+  const same=pairs.every(([k,v])=>{ const s=S.sel[k]; return s&&s.size===1&&s.has(canonVal(k,v)); });
+  pairs.forEach(([k,v])=>{ S.sel[k]=same?null:new Set([canonVal(k,v)]); });
+  toast(same?'Filters cleared':'Filtered to '+pairs.map(p=>p[1]).join(' / ')); update();
 }
 
 /* ---------- aggregation ---------- */
@@ -556,6 +663,7 @@ function renderKpis(){
   if(L&&P){ const d=P.a?(L.a-P.a)/Math.abs(P.a)*100:null; if(d!=null) trA=`<div class="tr ${d>=0?'up':'dn'}">${d>=0?'▲':'▼'} ${fmtP(Math.abs(d))} vs ${monthLabel(P.k)}</div>`;
     if(L.ach!=null&&P.ach!=null){ const dp=L.ach-P.ach; trC=`<div class="tr ${dp>=0?'up':'dn'}">${dp>=0?'▲':'▼'} ${Math.abs(dp).toFixed(1)} pts vs ${monthLabel(P.k)}</div>`; } }
   const sg=S.map.sales!=null?bestBy('sales'):null, ch=S.map.channel!=null?bestBy('channel'):null, pr=S.map.product!=null?bestBy('product'):null;
+  const cv=coverage(), gk='*\u0001*';
   const above=sg?sg.filter(g=>g.ach>=100).length:null, belowN=sg?sg.length-above:null;
   const K=[
     {l:'Total Sellout Target',v:fmt(T.t),s:`${fmt(S.view.length)} records`,c:'n'},
@@ -567,6 +675,8 @@ function renderKpis(){
     {l:'Top Performing Channel',v:ch&&ch[0]?ch[0].name:'N/A',s:ch&&ch[0]?`${fmtP(ch[0].ach)} achievement`:'No channel column',c:ch&&ch[0]?ch[0].band:'n',sm:1},
     {l:'Top Product Classification',v:pr&&pr[0]?pr[0].name:'N/A',s:pr&&pr[0]?`${fmtP(pr[0].ach)} achievement`:'No product column',c:pr&&pr[0]?pr[0].band:'n',sm:1}
   ];
+  if(S.map.customer!=null) K.push({l:'Unique Buying Accounts',v:fmt((cv.A.get(gk)||new Set()).size),s:'Customers with sales > 0',c:'n'});
+  if(S.map.mcl!=null) K.push({l:'MCL Codes With Sales',v:fmt((cv.M.get(gk)||new Set()).size),s:'Distinct MCL product codes, sales > 0',c:'n'});
   $('kpis').innerHTML=K.map(k=>`<div class="kpi b-${k.c}"><div class="l"><i></i>${esc(k.l)}</div><div class="v num${k.sm?' sm':''}">${esc(k.v)}</div><div class="s">${esc(k.s)}</div>${k.tr||''}${k.meter!=null?`<div class="meter"><i style="width:${Math.max(0,Math.min(100,k.meter))}%"></i></div>`:''}</div>`).join('');
   S.kpiList=K;
 }
@@ -583,9 +693,152 @@ function renderTop(){
   S.topText=L.map(x=>x.replace(/<[^>]+>/g,'').replace(/&amp;/g,'&'));
 }
 
+/* ---------- coverage: unique buying accounts + MCL codes per salesperson x channel ---------- */
+const nat=(a,b)=>String(a).localeCompare(String(b),undefined,{numeric:true,sensitivity:'base'});
+function coverage(){
+  const A=new Map(), M=new Map(), sales=new Set(), chans=new Set(), sk='sales' in S.map, ck='channel' in S.map, hc='customer' in S.map;
+  const add=(m,k,v)=>{ let s=m.get(k); if(!s){ s=new Set(); m.set(k,s); } s.add(v); };
+  for(const r of S.view){ if(!(r.a>0)) continue;               // only rows with sales greater than zero
+    const s=sk?r.sales:'All', c=ck?r.channel:'All'; sales.add(s); chans.add(c);
+    const cu=hc&&r.customer!=='(Blank)'?r.customer:null, m=r.mcl;
+    for(const key of [s+'\u0001'+c,s+'\u0001*','*\u0001'+c,'*\u0001*']){ if(cu) add(A,key,cu); if(m) add(M,key,m); } }
+  return {A,M,sales:[...sales].sort(nat),chans:[...chans].sort(nat)};
+}
+const covN=(m,s,c)=>(m.get((s||'*')+'\u0001'+(c||'*'))||new Set()).size;
+function renderCoverage(){
+  const card=$('card-cov'), hasA='customer' in S.map, hasM='mcl' in S.map; card.hidden=!(hasA||hasM); if(card.hidden) return;
+  const cv=coverage(), mode=S.covMode||(hasA?'acc':'mcl'); S.cv=cv;
+  const sel=$('covMetric'); sel.value=mode; [...sel.options].forEach(o=>{ o.disabled=(o.value==='acc'&&!hasA)||(o.value==='mcl'&&!hasM)||(o.value==='both'&&!(hasA&&hasM)); });
+  $('covSub').textContent='Only records with sales greater than zero are counted. Accounts are distinct customers; MCL codes are distinct Must Carry List product codes. Click a cell to filter.'+
+    (hasM?'':' No MCL column found: use Column detection at the bottom to point to it.');
+  const get=(s,c)=>mode==='acc'?covN(cv.A,s,c):mode==='mcl'?covN(cv.M,s,c):null;
+  const txt=(s,c)=>mode==='both'?`${fmt(covN(cv.A,s,c))} / ${fmt(covN(cv.M,s,c))}`:fmt(get(s,c));
+  let max=1; cv.sales.forEach(s=>cv.chans.forEach(c=>{ max=Math.max(max,covN(mode==='mcl'?cv.M:cv.A,s,c)); }));
+  const cell=(s,c,tot)=>{ const v=covN(mode==='mcl'?cv.M:cv.A,s,c), a=tot?0:Math.round(v/max*38);
+    return `<td class="r num${tot?' tot':''}" ${tot?'':`data-cov="1" data-s="${esc(s)}" data-c="${esc(c)}"`} style="${a?`background:color-mix(in srgb,var(--blue) ${a}%,transparent)`:''}">${txt(s,c)}</td>`; };
+  const sk='sales' in S.map, ck='channel' in S.map;
+  if(!cv.sales.length){ $('covTbl').innerHTML='<div class="empty">No records with sales greater than zero for the current filters.</div>'; $('ins-cov').innerHTML=''; return; }
+  $('covTbl').innerHTML=`<table><thead><tr><th>${sk?'Salesperson':''}</th>${cv.chans.map(c=>`<th class="r">${esc(c)}</th>`).join('')}<th class="r">Total (unique)</th></tr></thead><tbody>`+
+    cv.sales.map(s=>`<tr><td><b>${esc(s)}</b></td>${cv.chans.map(c=>cell(s,c)).join('')}${cell(s,null,1)}</tr>`).join('')+
+    `<tr class="gt"><td><b>Total (unique)</b></td>${cv.chans.map(c=>cell(null,c,1)).join('')}${cell(null,null,1)}</tr></tbody></table>`;
+  // insights
+  const rows=[], by=m=>cv.sales.map(s=>({n:s,v:covN(m,s,null)})).sort((x,y)=>y.v-x.v), byc=m=>cv.chans.map(c=>({n:c,v:covN(m,null,c)})).sort((x,y)=>y.v-x.v);
+  const M0=hasA?cv.A:cv.M, lab=hasA?'buying accounts':'MCL codes sold', S1=by(M0), C1=byc(M0);
+  rows.push({k:'Key Finding',b:'n',v:(hasA?`${fmt(covN(cv.A))} unique buying accounts`:'')+(hasA&&hasM?' and ':'')+(hasM?`${fmt(covN(cv.M))} MCL product codes with sales`:'')+` across ${cv.sales.length} salesperson${cv.sales.length>1?'s':''} and ${cv.chans.length} channel${cv.chans.length>1?'s':''}.`});
+  rows.push({k:'Top Performer',b:'g',v:`${S1[0].n} has the most ${lab} (${fmt(S1[0].v)}). Strongest channel: ${C1[0].n} (${fmt(C1[0].v)}).`});
+  rows.push({k:'Lowest Performer',b:'r',v:`${S1[S1.length-1].n} has the fewest ${lab} (${fmt(S1[S1.length-1].v)}). Weakest channel: ${C1[C1.length-1].n} (${fmt(C1[C1.length-1].v)}).`});
+  if(hasA&&hasM){ const T=by(cv.M); rows.push({k:'MCL Coverage',b:'n',v:`Most MCL codes sold: ${T[0].n} (${fmt(T[0].v)}); fewest: ${T[T.length-1].n} (${fmt(T[T.length-1].v)}).`}); }
+  rows.push({k:'Recommended Action',b:'n',v:`Widen coverage for ${S1[S1.length-1].n} (${lab}) by assigning dormant accounts, and push the MCL list in ${C1[C1.length-1].n}${hasM?' to lift MCL code coverage':''}.`});
+  $('ins-cov').innerHTML=insHtml(rows);
+}
+function covAoa(mode){ const cv=S.cv||coverage(), m=mode==='mcl'?cv.M:cv.A;
+  return [['Salesperson'].concat(cv.chans,['Total (unique)'])].concat(cv.sales.map(s=>[s].concat(cv.chans.map(c=>covN(m,s,c)),[covN(m,s,null)])),[['Total (unique)'].concat(cv.chans.map(c=>covN(m,null,c)),[covN(m)])]); }
+
+/* ---------- MCL Monitoring (second sheet): Salesman x Store Format ---------- */
+// MCL % = Actual MCL / MCL Target x 100. Green >= 100, yellow 80 to 99.99, red < 80. A missing, blank, zero or negative target gives N/A (never a division error).
+const mband=p=>p==null||!isFinite(p)?'n':p>=100?'g':p>=80?'y':'r';
+const mpct=(a,t)=>t>0?a/t*100:null;
+const NOTGT='N/A';
+function mclGroups(){
+  const cs=canonFn('sales'), cf=canonFn('format'), m=new Map(); for(const r of M.view){ const s=cs(r.sales||'All'), f=cf(r.format||'All'), k=s+'\u0001'+f; let g=m.get(k); if(!g){ g={sales:s,format:f,a:0,t:0,n:0}; m.set(k,g); } g.a+=r.a; g.t+=r.t; g.n++; }
+  const gs=[...m.values()]; gs.forEach(g=>{ g.pct=mpct(g.a,g.t); g.band=mband(g.pct); g.gap=g.t>0?g.a-g.t:null; }); return gs;
+}
+function mclTotal(gs){ let a=0,t=0,aAll=0,nt=0; gs.forEach(g=>{ aAll+=g.a; if(g.t>0){ a+=g.a; t+=g.t; } else nt++; }); const pct=mpct(a,t); return {a:aAll,aV:a,t,pct,band:mband(pct),noTarget:nt}; }
+function groupMcl(gs,key){ const m=new Map(); gs.forEach(g=>{ const k=g[key]; let x=m.get(k); if(!x){ x={name:k,dim:key,a:0,t:0}; m.set(k,x); } x.a+=g.a; x.t+=g.t; }); const o=[...m.values()]; o.forEach(g=>{ g.pct=mpct(g.a,g.t); g.band=mband(g.pct); g.gap=g.t>0?g.a-g.t:null; }); return o; }
+function canonFn(key){ const d=filterDefs().find(x=>x.key===key); return d&&d.canon?v=>d.canon.get(nz(v)||String(v))||v:v=>v; }
+const mclPctTxt=g=>g.pct==null?NOTGT:fmtP(g.pct);
+function mclTip(g,C){ const nm=g.dim?esc(g.name):`${esc(g.sales)} / ${esc(g.format)}`; const row=(l,v,c)=>`<div style="display:flex;justify-content:space-between;gap:18px"><span>${l}</span><b${c?` style="color:${c}"`:''}>${v}</b></div>`;
+  return `<div style="font-weight:700;margin-bottom:4px">${nm}</div>`+(g.dim?'':row('Salesman',esc(g.sales))+row('Store Format',esc(g.format)))+row('Actual MCL',fmt(g.a))+row('MCL Target',g.t>0?fmt(g.t):NOTGT)+
+    row('MCL %',mclPctTxt(g),C['i'+g.band]||C.muted)+(g.t>0&&g.gap<0?row('Short by',fmt(-g.gap)):'')+`<div style="margin-top:3px;color:${C.muted};font-size:11px">Click to filter</div>`; }
+function mclOption(gs,view){
+  const C=colors(), fill=b=>b==='g'?C.g:b==='y'?C.y:b==='r'?C.r:C.line, txt=b=>b==='y'?'#2B2100':b==='n'?C.muted:C.on;
+  const base={textStyle:{fontFamily:cssv('--font-b')},tooltip:{trigger:'item',confine:true,backgroundColor:C.surf,borderColor:C.line,textStyle:{color:C.ink,fontSize:12.5}}};
+  if(view==='heat'){
+    const fm=[...new Set(gs.map(g=>g.format))].sort(nat), sl=[...new Set(gs.map(g=>g.sales))].sort(nat), zoom=sl.length>25;
+    const narrow=$('ch-mcl').clientWidth<600, xi=new Map(fm.map((v,i)=>[v,i])), yi=new Map(sl.map((v,i)=>[v,i]));
+    return Object.assign(base,{grid:{left:8,right:zoom?30:12,top:narrow?70:8,bottom:zoom?8:4,containLabel:true},
+      tooltip:Object.assign(base.tooltip,{formatter:p=>mclTip(p.data.g,C)}),
+      xAxis:{type:'category',data:fm,position:'top',splitArea:{show:false},axisTick:{show:false},axisLine:{show:false},axisLabel:{color:C.ink,interval:0,rotate:narrow||fm.length>6?35:0,width:110,overflow:'truncate',fontWeight:600}},
+      yAxis:{type:'category',data:sl,inverse:true,axisTick:{show:false},axisLine:{show:false},axisLabel:{color:C.ink,interval:0,width:140,overflow:'truncate'}},
+      dataZoom:zoom?[{type:'inside',yAxisIndex:0,start:0,end:Math.min(100,25/sl.length*100),zoomLock:true},{type:'slider',yAxisIndex:0,start:0,end:Math.min(100,25/sl.length*100),right:2,width:16,showDetail:false}]:undefined,
+      series:[{type:'heatmap',data:gs.map(g=>({value:[xi.get(g.format),yi.get(g.sales),g.pct==null?-1:+g.pct.toFixed(2)],g,label:{color:txt(g.band)},itemStyle:{color:fill(g.band),borderColor:C.surf,borderWidth:2,borderRadius:4}})),
+        label:{show:true,fontWeight:700,fontSize:12,formatter:p=>p.value[2]<0?NOTGT:fmtP(p.value[2])},emphasis:{itemStyle:{borderColor:C.ink,borderWidth:2}}}]});
+  }
+  const key=view==='sales'?'sales':'format', og=groupMcl(gs,key).sort((x,y)=>(y.pct==null?-1e18:y.pct)-(x.pct==null?-1e18:x.pct)), mx=Math.max(120,...og.map(g=>g.pct||0))*1.08, zoom=og.length>25;
+  return Object.assign(base,{grid:{left:8,right:64,top:12,bottom:8,containLabel:true},
+    tooltip:Object.assign(base.tooltip,{trigger:'axis',axisPointer:{type:'shadow'},formatter:ps=>mclTip(og[ps[0].dataIndex],C)}),
+    xAxis:{type:'value',min:0,max:mx,axisLabel:{color:C.muted,formatter:'{value}%'},splitLine:{lineStyle:{color:C.line,type:'dashed'}}},
+    yAxis:{type:'category',inverse:true,data:og.map(g=>g.name),axisTick:{show:false},axisLabel:{color:C.ink,interval:0,width:140,overflow:'truncate'}},
+    dataZoom:zoom?[{type:'inside',yAxisIndex:0,start:0,end:25/og.length*100,zoomLock:true},{type:'slider',yAxisIndex:0,start:0,end:25/og.length*100,right:2,width:16,showDetail:false}]:undefined,
+    series:[{type:'bar',barWidth:'60%',data:og.map(g=>({value:g.pct==null?0:+g.pct.toFixed(2),g,itemStyle:{color:fill(g.band),borderRadius:[0,3,3,0]},label:{color:C['i'+g.band]||C.muted}})),
+      label:{show:true,position:'right',fontWeight:700,formatter:p=>mclPctTxt(p.data.g)},
+      markLine:{silent:true,symbol:'none',lineStyle:{type:'dashed'},label:{formatter:'{c}%',color:C.muted,position:'end'},data:[{xAxis:80,lineStyle:{color:C.iy}},{xAxis:100,lineStyle:{color:C.ig}}]}}]});
+}
+function mclInsights(gs,T){
+  const rows=[]; if(!gs.length) return rows;
+  const v=gs.filter(g=>g.pct!=null).sort((x,y)=>y.pct-x.pct), cnt=b=>v.filter(g=>g.band===b).length, names=a=>a.slice(0,3).map(g=>g.sales+' / '+g.format).join(', ')+(a.length>3?' +'+(a.length-3)+' more':'');
+  rows.push({k:'Key Finding',b:T.band,v:`MCL achievement is ${T.pct==null?NOTGT:fmtP(T.pct)} (${fmt(T.aV)} actual vs ${fmt(T.t)} target). ${cnt('g')} salesman/format combinations are at or above 100%, ${cnt('y')} are at 80 to 99.99% and ${cnt('r')} are below 80%.`});
+  if(v.length){ const hi=v[0], lo=v[v.length-1];
+    rows.push({k:'Top Performer',b:hi.band,v:`${hi.sales} in ${hi.format}: ${fmtP(hi.pct)} (${fmt(hi.a)} of ${fmt(hi.t)}).`});
+    rows.push({k:'Lowest Performer',b:lo.band,v:`${lo.sales} in ${lo.format}: ${fmtP(lo.pct)} (${fmt(lo.a)} of ${fmt(lo.t)}).`});
+    const sf=v.filter(g=>g.gap<0).sort((x,y)=>x.gap-y.gap), tot=sf.reduce((s,g)=>s-g.gap,0);
+    rows.push({k:'Gap Analysis',b:tot>0?'r':'g',v:tot>0?`Total MCL shortfall of ${fmt(tot)}. Largest gap: ${sf[0].sales} in ${sf[0].format}, short by ${fmt(-sf[0].gap)} (${fmtP(tot?-sf[0].gap/tot*100:0)} of the shortfall).`:'No combination is below its MCL target.'});
+    const red=v.filter(g=>g.band==='r').sort((x,y)=>x.gap-y.gap), yel=v.filter(g=>g.band==='y');
+    rows.push({k:'Risk Area',b:red.length?'r':yel.length?'y':'g',v:red.length?`${red.length} combination${red.length>1?'s':''} below 80%: ${names(red)}.`:yel.length?`None below 80%. Watch ${names(yel)}.`:'No risk area: every combination with a target is at or above 100%.'});
+    rows.push({k:'Recommended Action',b:'n',v:red.length?`Agree MCL recovery plans for ${names(red)}: check listing and availability of the missing MCL codes, set weekly code-by-code tracking, and pair with top performers in the same store format.`:yel.length?`Push the missing MCL codes in ${names(yel)} to reach 100%.`:'Maintain MCL discipline and consider raising targets for the leaders.'}); }
+  if(T.noTarget) rows.push({k:'Data Quality',b:'y',v:`${T.noTarget} combination${T.noTarget>1?'s have':' has'} a blank or zero MCL target, so MCL % shows ${NOTGT} and they are excluded from the overall percentage.`});
+  return rows;
+}
+function mclSortedRows(gs){
+  const ts=M.tsort||{k:'sales',dir:'asc'}, d=ts.dir==='asc'?1:-1, get=g=>({sales:g.sales,format:g.format,a:g.a,t:g.t,pct:g.pct})[ts.k];
+  return gs.slice().sort((x,y)=>{ const a=get(x), b=get(y); if(a==null&&b==null) return 0; if(a==null) return 1; if(b==null) return -1; const c=typeof a==='number'?a-b:nat(a,b); return (c||nat(x.sales,y.sales)||nat(x.format,y.format))*d; });
+}
+function renderMclTable(){
+  const gs=mclSortedRows(S.mclG||[]), T=mclTotal(S.mclG||[]), ts=M.tsort||{k:'sales',dir:'asc'};
+  const th=(k,l,r)=>`<th class="${r?'r':''}" data-ms="${k}" aria-sort="${ts.k===k?(ts.dir==='asc'?'ascending':'descending'):'none'}">${l}${ts.k===k?(ts.dir==='asc'?' \u25b2':' \u25bc'):''}</th>`;
+  $('mclTbl').innerHTML=`<table><thead><tr>${th('sales','Salesman')}${th('format','Store Format')}${th('a','Actual MCL',1)}${th('t','MCL Target',1)}${th('pct','MCL %',1)}<th>Status</th></tr></thead><tbody>`+
+    gs.map(g=>`<tr class="clk" data-mp="1" data-ms2="${esc(g.sales)}" data-mf="${esc(g.format)}"><td>${esc(g.sales)}</td><td>${esc(g.format)}</td><td class="r num">${fmt(g.a)}</td><td class="r num">${g.t>0?fmt(g.t):'<span class="na">'+NOTGT+'</span>'}</td>`+
+      `<td class="r num ${g.pct==null?'na':'cell-'+g.band}">${mclPctTxt(g)}</td><td><span class="pill b-${g.band==='n'?'n':g.band}" ${g.band==='n'?'style="--c:var(--muted);--ci:var(--muted)"':''}>${g.band==='g'?'On target':g.band==='y'?'Near target':g.band==='r'?'Below 80%':'No target'}</span></td></tr>`).join('')+
+    `</tbody><tfoot><tr class="gt"><td colspan="2"><b>Total</b></td><td class="r num"><b>${fmt(T.a)}</b></td><td class="r num"><b>${T.t>0?fmt(T.t):NOTGT}</b></td><td class="r num ${T.pct==null?'na':'cell-'+T.band}"><b>${T.pct==null?NOTGT:fmtP(T.pct)}</b></td><td></td></tr></tfoot></table>`;
+}
+function mclAoa(){ const gs=mclSortedRows(S.mclG||[]); return [['Salesman','Store Format','Actual MCL','MCL Target','MCL %']].concat(gs.map(g=>[g.sales,g.format,g.a,g.t>0?g.t:'N/A',g.pct==null?'N/A':+g.pct.toFixed(2)])); }
+function renderMcl(chartOnly){
+  const card=$('card-mcl'); const have=M.grid||M.err; card.hidden=!have; if(card.hidden) return;
+  const msg=$('mclMsg'), body=$('mclBody');
+  if(!M.ok){ body.hidden=true; msg.hidden=false;
+    msg.innerHTML=M.err&&!M.grid?`<b>The MCL sheet could not be loaded.</b> ${esc(M.err)}. <div class="row"><button class="btn sm primary" id="retry">Retry</button></div>`
+      :`<b>Could not find the MCL Target and Actual MCL columns.</b> Headers found: ${esc(M.headers.filter(Boolean).join(' | ')||'none')}. Use "MCL sheet column detection" at the bottom of the page to choose them.`;
+    $('mclSub').textContent=''; if(charts.mcl&&!charts.mcl.isDisposed()) charts.mcl.clear(); return; }
+  body.hidden=false; msg.hidden=!M.err; if(M.err) msg.innerHTML=`<b>MCL sheet refresh failed.</b> ${esc(M.err)}. Showing the last successful MCL data.`;
+  const gs=mclGroups(), T=mclTotal(gs); S.mclG=gs; const view=$('mclView').value||'heat';
+  const ign=filterDefs().filter(d=>S.sel[d.key]&&!d.mget).map(d=>d.label); if((S.dFrom||S.dTo)&&!M.hasDate) ign.push('Date');
+  const active=filterDefs().filter(d=>d.mget).map(d=>d.label);
+  $('mclSub').textContent=`Actual MCL vs MCL Target by salesman and store format (MCL % = Actual \u00f7 Target \u00d7 100). Follows: ${active.join(', ')||'no filters'}${M.hasDate?', Date':''}.`+(ign.length?` Not in the MCL sheet, so ignored here: ${ign.join(', ')}.`:'');
+  $('mclK').innerHTML=[['Actual MCL',fmt(T.a),`${fmt(M.view.length)} MCL rows`,'n'],['MCL Target',T.t>0?fmt(T.t):NOTGT,T.noTarget?`${T.noTarget} combination${T.noTarget>1?'s':''} without target`:'Sum of MCL targets','n'],
+    ['MCL %',T.pct==null?NOTGT:fmtP(T.pct),(T.pct==null?'No valid target':T.band==='g'?'On target':T.band==='y'?'Near target (80 to 99.99%)':'Below 80%')+(T.noTarget&&T.pct!=null?' \u00b7 excludes rows without target':''),T.band]].map(k=>`<div class="kpi b-${k[3]}"><div class="l"><i></i>${k[0]}</div><div class="v num">${esc(k[1])}</div><div class="s">${esc(k[2])}</div></div>`).join('');
+  S.clicks=S.clicks||{}; S.clicks.mcl=p=>{ const g=p.data&&p.data.g; if(!g) return; if(g.dim) drillPair([[g.dim,g.name]]); else drillPair([['sales',g.sales],['format',g.format]]); };
+  $('em-mcl').textContent='No MCL records match the current filters.';
+  const rows=view==='heat'?new Set(gs.map(g=>g.sales)).size:view==='sales'?new Set(gs.map(g=>g.sales)).size:new Set(gs.map(g=>g.format)).size;
+  $('ch-mcl').style.height=Math.max(260,Math.min(700,rows>25?680:rows*(view==='heat'?38:30)+100))+'px';
+  put('mcl',gs.length?mclOption(gs,view):null);
+  if(!chartOnly){ $('ins-mcl').innerHTML=insHtml(mclInsights(gs,T)); renderMclTable(); }
+}
+
+/* ---------- navigation ---------- */
+function syncNav(){
+  const f=document.querySelector('.filters'); if(f) document.documentElement.style.setProperty('--sh',(f.offsetHeight+8)+'px');
+  document.querySelectorAll('#nav a').forEach(a=>{ const el=$(a.getAttribute('href').slice(1)); a.hidden=!el||el.hidden||!!el.closest('[hidden]'); });
+  navSpy();
+}
+let spyRaf=0;
+function navSpy(){ cancelAnimationFrame(spyRaf); spyRaf=requestAnimationFrame(()=>{ const off=(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sh'))||170)+40; let cur=null;
+  document.querySelectorAll('#nav a:not([hidden])').forEach(a=>{ const el=$(a.getAttribute('href').slice(1)); if(el&&el.getBoundingClientRect().top<=off) cur=a; });
+  document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('on',a===cur)); }); }
+addEventListener('scroll',navSpy,{passive:true}); addEventListener('resize',syncNav);
+
 /* ---------- charts ---------- */
 const ro=window.ResizeObserver?new ResizeObserver(es=>es.forEach(e=>{ const id=e.target.id.replace('ch-',''); if(charts[id]&&!charts[id].isDisposed()) charts[id].resize(); })):null;
-function colors(){ return {g:cssv('--s-g'),y:cssv('--s-y'),r:cssv('--s-r'),n:cssv('--blue'),ig:cssv('--i-g'),iy:cssv('--i-y'),ir:cssv('--i-r'),ink:cssv('--ink'),muted:cssv('--muted'),line:cssv('--line'),blue:cssv('--blue'),red:cssv('--red'),tbar:cssv('--tbar'),surf:cssv('--surface')}; }
+function colors(){ return {g:cssv('--s-g'),y:cssv('--s-y'),r:cssv('--s-r'),n:cssv('--blue'),ig:cssv('--i-g'),iy:cssv('--i-y'),ir:cssv('--i-r'),ink:cssv('--ink'),muted:cssv('--muted'),line:cssv('--line'),blue:cssv('--blue'),red:cssv('--red'),on:cssv('--on-fill'),tbar:cssv('--tbar'),surf:cssv('--surface')}; }
 function anim(){ return !(reduced||S.noAnim); }
 function put(id,opt,onClick){
   const el=$('ch-'+id), em=$('em-'+id);
@@ -673,7 +926,7 @@ function renderPareto(){
   const more=$('paretoMore'); more.hidden=gs.length<=15; more.textContent=S.paretoAll?'Show top 15 only':`Show all ${fmt(Math.min(gs.length,500))} customers`;
 }
 function toggleFs(id){ const card=$('card-'+id); if(!card) return; const on=card.classList.toggle('fs'); document.body.style.overflow=on?'hidden':''; setTimeout(()=>{ const c=charts[id]; if(c&&!c.isDisposed()) c.resize(); },60); }
-function renderAllCharts(){ renderCards(); renderPareto(); }
+function renderAllCharts(){ renderCards(); renderPareto(); renderMcl(true); }
 
 /* ---------- detail table ---------- */
 function tableCols(){
@@ -745,7 +998,7 @@ async function exportPdf(){
   const prevTheme=document.documentElement.getAttribute('data-theme'); S.noAnim=true;
   try{
     document.documentElement.setAttribute('data-theme','light'); renderAllCharts(); await new Promise(r=>setTimeout(r,80));
-    const imgs={}; ['sales','product','channel','format','pareto'].forEach(id=>{ const c=charts[id]; if(c&&!c.isDisposed()&&!$('ch-'+id).hidden) imgs[id]={url:c.getDataURL({type:'jpeg',pixelRatio:2,backgroundColor:'#ffffff'}),w:c.getWidth(),h:c.getHeight()}; });
+    const imgs={}; ['sales','product','channel','format','mcl','pareto'].forEach(id=>{ const c=charts[id]; if(c&&!c.isDisposed()&&!$('ch-'+id).hidden) imgs[id]={url:c.getDataURL({type:'jpeg',pixelRatio:2,backgroundColor:'#ffffff'}),w:c.getWidth(),h:c.getHeight()}; });
     const doc=new window.jspdf.jsPDF({orientation:'landscape',unit:'mm',format:'a4'}), W=297, M=14; let y=0;
     const head=t=>{ doc.setFillColor(0,87,160); doc.rect(0,0,W,16,'F'); doc.setTextColor(255); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(clean(t),M,10.5); doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.text('FAST Unimerchant Inc.',W-M,10.5,{align:'right'}); doc.setTextColor(20,36,58); y=24; };
     const para=(txt,size=9,bold=false)=>{ doc.setFont('helvetica',bold?'bold':'normal'); doc.setFontSize(size); const ls=doc.splitTextToSize(clean(txt),W-2*M); ls.forEach(l=>{ if(y>198){ doc.addPage(); head('Sellout KPI Dashboard (continued)'); doc.setFont('helvetica',bold?'bold':'normal'); doc.setFontSize(size); } doc.text(l,M,y); y+=size*0.45+1.4; }); };
@@ -761,6 +1014,7 @@ async function exportPdf(){
     (S.topText||[]).forEach(t=>para('- '+t,9));
     const sections=[['sales','Salesperson Performance',()=>insightRows(DIMS[0],groupBy(S.view,'sales'))],['product','Product Classification Performance',()=>insightRows(DIMS[1],groupBy(S.view,'product'))],
       ['channel','Channel Performance',()=>insightRows(DIMS[2],groupBy(S.view,'channel'))],['format','Store Format Performance',()=>insightRows(DIMS[3],groupBy(S.view,'format'))],
+      ['mcl','MCL Monitoring: Salesman x Store Format',()=>mclInsights(S.mclG||mclGroups(),mclTotal(S.mclG||mclGroups()))],
       ['pareto','Pareto Analysis: Top Customers (80/20)',()=>paretoInsights(S.pareto||paretoData())]];
     for(const [id,title,fn] of sections){ if(!imgs[id]) continue; doc.addPage(); head(title); const im=imgs[id]; const maxH=108, maxW=W-2*M; let w=maxW,h=w*im.h/im.w; if(h>maxH){ h=maxH; w=h*im.w/im.h; }
       doc.addImage(im.url,'JPEG',M+(maxW-w)/2,y-4,w,h); y+=h+2; fn().forEach(r=>para(r.k+': '+r.v,8.5)); }
@@ -774,14 +1028,23 @@ function showMsg(html,info){ const m=$('msg'); m.className='banner'+(info?' info
 function hideMsg(){ $('msg').hidden=true; }
 function setSource(kind,txt){ $('dot').className='dot '+kind; $('srcTxt').textContent=txt; }
 function setLoading(on){ S.loading=on; $('bar').classList.toggle('on',on); $('spin').hidden=!on; $('refresh').disabled=on; }
+async function fetchCsv(url){
+  const res=await fetch(url+'&_='+Date.now(),{cache:'no-store'}); if(!res.ok) throw new Error('HTTP '+res.status);
+  const text=await res.text(); if(/^\s*<(!doctype|html)/i.test(text)) throw new Error('Google returned a web page instead of CSV. Check that the sheet is published to the web as CSV.');
+  return text;
+}
 async function load(manual){
   if(S.loading) return; setLoading(true);
   try{
-    const res=await fetch(SHEET_URL+'&_='+Date.now(),{cache:'no-store'}); if(!res.ok) throw new Error('HTTP '+res.status);
-    const text=await res.text(); if(/^\s*<(!doctype|html)/i.test(text)) throw new Error('Google returned a web page instead of CSV. Check that the sheet is published to the web as CSV.');
+    const [rm,rc]=await Promise.allSettled([fetchCsv(SHEET_URL),fetchCsv(MCL_URL)]);   // sellout sheet + MCL sheet, refreshed together
+    if(rm.status==='rejected') throw rm.reason;
+    let changed=manual||!S.rows.length;
+    if(rm.value!==S.lastText){ S.lastText=rm.value; S.grid=parseCsv(rm.value); changed=true; }
+    if(rc.status==='fulfilled'){ M.err=''; if(rc.value!==M.lastText||!M.grid){ M.lastText=rc.value; M.grid=parseCsv(rc.value); changed=true; } }
+    else { M.err=(rc.reason&&rc.reason.message)||String(rc.reason); changed=true; }
     S.lastOk=new Date(); S.source='live';
-    if(text!==S.lastText||manual||!S.rows.length){ S.lastText=text; apply(parseCsv(text)); } else { setSource('ok','Live data (no changes)'); }
-    setSource('ok','Live: Google Sheets'); $('updated').textContent='Last updated '+S.lastOk.toLocaleString();
+    if(changed) applyAll();
+    setSource('ok','Live: Google Sheets'+(M.err?' (MCL sheet unavailable)':'')); $('updated').textContent='Last updated '+S.lastOk.toLocaleString();
   }catch(e){
     console.warn(e);
     if(S.rows.length){ setSource('bad','Refresh failed, showing earlier data'); showMsg(`<b>Could not refresh the data.</b> ${esc(e.message)}. Showing the last successful load${S.lastOk?' from '+esc(S.lastOk.toLocaleString()):''}. <div class="row"><button class="btn sm primary" id="retry">Retry</button></div>`); }
@@ -789,8 +1052,11 @@ async function load(manual){
   }finally{ setLoading(false); }
 }
 function parseCsv(text){ if(!window.Papa) throw new Error('CSV library (PapaParse) did not load.'); const r=Papa.parse(text,{skipEmptyLines:'greedy'}); return r.data; }
-function apply(grid){
-  S.grid=grid; const ok=ingest(grid); hideMsg();
+function apply(grid){ S.grid=grid; applyAll(); }
+function applyAll(){
+  const ok=ingest(S.grid);
+  if(M.grid){ try{ ingestMcl(M.grid); }catch(e){ console.warn(e); M.ok=false; M.err='Could not read the MCL sheet: '+e.message; } } else { M.rows=[]; M.view=[]; M.ok=false; M.map={}; M.extra=[]; M.hasDate=false; }
+  hideMsg();
   if(!ok){ $('main').hidden=true; renderFoot(true); showMsg(`<b>Could not find the Target and Actual columns.</b> Headers found: ${esc(S.headers.filter(Boolean).join(' | ')||'none')}. Use "Column detection" at the bottom of the page to point the dashboard to the right columns.`); return; }
   $('main').hidden=false; buildCards(); buildFilters(); S.page=0; update(); renderFoot(false);
 }
@@ -808,14 +1074,20 @@ let raf=0; function update(){ cancelAnimationFrame(raf); raf=requestAnimationFra
 function render(){
   if(!S.rows.length) return; applyFilters(); renderChips(); (S.defs||[]).forEach(d=>d.refresh&&d.refresh());
   const none=!S.view.length; if(none) showMsg(`<b>No records match the current filters.</b> <div class="row"><button class="btn sm primary" id="clearAll">Clear all filters</button></div>`,true); else if($('msg').classList.contains('info')) hideMsg();
-  renderKpis(); renderTop(); renderAllCharts(); renderTable();
+  renderKpis(); renderTop(); renderAllCharts(); renderCoverage(); renderMcl(); renderTable(); syncNav();
 }
 function renderFoot(bad){
   const m=S.map, name=k=>k in m?esc(S.headers[m[k]]):'<i>not found</i>';
   const sel=ORDER.map(k=>`<label>${FIELDS[k].label}<select class="sel" data-map="${k}"><option value="-2">Auto-detect</option><option value="-1" ${S.ovr[k]===-1?'selected':''}>None</option>${S.headers.map((h,i)=>`<option value="${i}" ${S.ovr[k]===i?'selected':''}>${esc(h)}${m[k]===i?' (current)':''}</option>`).join('')}</select></label>`).join('');
   $('foot').innerHTML=`<div>${bad?'':`${fmt(S.rows.length)} records loaded${S.skipped?` (${fmt(S.skipped)} blank/total rows skipped)`:''}. Header row detected at line ${S.hrow+1}. `}`+
    `Detected: ${ORDER.map(k=>`${FIELDS[k].label} → ${name(k)}`).join(' · ')}.${S.extra.length?` Extra filters from new columns: ${S.extra.map(x=>esc(x.label)).join(', ')}.`:''}${S.hasDate?'':' No usable date column, so date filter and trends are off.'}</div>
-   <details ${bad?'open':''}><summary>Column detection (override if a column was matched wrongly)</summary><div class="map-grid">${sel}</div></details>`;
+   <details ${bad?'open':''}><summary>Column detection (override if a column was matched wrongly)</summary><div class="map-grid">${sel}</div></details>`+mclFoot();
+}
+function mclFoot(){
+  if(!M.grid) return ''; const m=M.map, name=k=>k in m?esc(M.headers[m[k]]):'<i>not found</i>';
+  const sel=ORDM.map(k=>`<label>${FM[k].label}<select class="sel" data-mapm="${k}"><option value="-2">Auto-detect</option><option value="-1" ${M.ovr[k]===-1?'selected':''}>None</option>${M.headers.map((h,i)=>`<option value="${i}" ${M.ovr[k]===i?'selected':''}>${esc(h)}${m[k]===i?' (current)':''}</option>`).join('')}</select></label>`).join('');
+  return `<div style="margin-top:8px">MCL sheet: ${fmt(M.rows.length)} rows${M.skipped?` (${fmt(M.skipped)} total rows skipped)`:''}, header at line ${M.hrow+1}. Detected: ${ORDM.map(k=>`${FM[k].label} \u2192 ${name(k)}`).join(' \u00b7 ')}.${M.extra.length?` Extra MCL filters: ${M.extra.map(x=>esc(x.label)).join(', ')}.`:''}</div>
+   <details ${M.ok?'':'open'}><summary>MCL sheet column detection</summary><div class="map-grid">${sel}</div></details>`;
 }
 function setTheme(t){ if(t) document.documentElement.setAttribute('data-theme',t); else document.documentElement.removeAttribute('data-theme'); }
 function isDark(){ const t=document.documentElement.getAttribute('data-theme'); return t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches; }
@@ -829,16 +1101,32 @@ document.addEventListener('click',e=>{
   else if(t.closest('#clearAll')){ S.sel={}; S.dFrom=S.dTo=''; buildFilters(); update(); }
   else if(t.closest('[data-clr]')){ clearFilter(t.closest('[data-clr]').dataset.clr); update(); }
   else if(t.closest('[data-png]')){ const id=t.closest('[data-png]').dataset.png, c=charts[id]; if(c&&!c.isDisposed()) download(id+'-chart.png',c.getDataURL({type:'png',pixelRatio:2,backgroundColor:cssv('--surface')})); else toast('Nothing to export for this chart.'); }
+  else if(t.closest('[data-cov]')){ const td=t.closest('[data-cov]'); if('sales' in S.map) S.sel.sales=new Set([td.dataset.s]); if('channel' in S.map) S.sel.channel=new Set([td.dataset.c]); buildFilters(); update(); toast('Filtered to '+td.dataset.s+' / '+td.dataset.c); }
+  else if(t.closest('th[data-ms]')){ const k=t.closest('th').dataset.ms; M.tsort=M.tsort&&M.tsort.k===k?{k,dir:M.tsort.dir==='asc'?'desc':'asc'}:{k,dir:'asc'}; renderMclTable(); }
+  else if(t.closest('tr[data-mp]')){ const tr=t.closest('tr'); drillPair([['sales',tr.dataset.ms2],['format',tr.dataset.mf]]); }
   else if(t.closest('[data-fs]')) toggleFs(t.closest('[data-fs]').dataset.fs);
   else if(t.closest('th[data-col]')){ const id=t.closest('th').dataset.col; S.tsort=S.tsort&&S.tsort.id===id?{id,dir:S.tsort.dir==='asc'?'desc':'asc'}:{id,dir:'asc'}; renderTable(); }
 });
 document.addEventListener('change',e=>{
   const t=e.target;
   if(t.dataset&&t.dataset.sort){ S.sort[t.dataset.sort]=t.value; renderCards(); }
+  else if(t.dataset&&t.dataset.mapm!==undefined){ const v=+t.value; if(v===-2) delete M.ovr[t.dataset.mapm]; else M.ovr[t.dataset.mapm]=v; store.set('sokpi-mapM',JSON.stringify(M.ovr)); if(M.grid){ ingestMcl(M.grid); buildFilters(); update(); renderFoot(false); } }
   else if(t.dataset&&t.dataset.map!==undefined){ const v=+t.value; if(v===-2) delete S.ovr[t.dataset.map]; else S.ovr[t.dataset.map]=v; store.set('sokpi-map',JSON.stringify(S.ovr)); if(S.grid) apply(S.grid); }
 });
 $('refresh').addEventListener('click',()=>load(true));
 $('pdf').addEventListener('click',exportPdf);
+$('mclView').addEventListener('change',()=>renderMcl(true));
+$('mclCsv').addEventListener('click',()=>download('mcl-monitoring.csv',new Blob(['\ufeff'+Papa.unparse(mclAoa())],{type:'text/csv;charset=utf-8'})));
+$('mclXlsx').addEventListener('click',()=>{ if(!window.XLSX){ toast('Excel library not loaded.'); return; } const wb=XLSX.utils.book_new(), T=mclTotal(S.mclG||[]);
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(mclAoa()),'MCL Monitoring');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['MCL Monitoring export'],['Exported',new Date().toLocaleString()],['Filters applied',filterSummary()],['Total Actual MCL',T.a],['Total MCL Target',T.t],['MCL %',T.pct==null?'N/A':+T.pct.toFixed(2)],['Rule','MCL % = Actual MCL / MCL Target x 100; blank or zero target = N/A']]),'Info');
+  XLSX.writeFile(wb,'mcl-monitoring.xlsx'); });
+$('covMetric').addEventListener('change',e=>{ S.covMode=e.target.value; renderCoverage(); });
+$('covCsv').addEventListener('click',()=>{ const m=S.covMode==='mcl'?'mcl':'acc'; download('buying-accounts-'+m+'.csv',new Blob(['\ufeff'+Papa.unparse(covAoa(m))],{type:'text/csv;charset=utf-8'})); });
+$('covXlsx').addEventListener('click',()=>{ if(!window.XLSX){ toast('Excel library not loaded.'); return; } const wb=XLSX.utils.book_new();
+  if('customer' in S.map) XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(covAoa('acc')),'Buying accounts');
+  if('mcl' in S.map) XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(covAoa('mcl')),'MCL codes sold');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet([['Filters applied',filterSummary()],['Rule','Only records with Actual sales > 0 are counted; totals are distinct counts']]),'Info'); XLSX.writeFile(wb,'buying-accounts-mcl.xlsx'); });
 $('xCsv').addEventListener('click',exportCsv); $('xXlsx').addEventListener('click',exportXlsx);
 $('theme').addEventListener('click',()=>{ const t=isDark()?'light':'dark'; setTheme(t); store.set('sokpi-theme',t); themeBtn(); renderAllCharts(); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ themeBtn(); renderAllCharts(); });
